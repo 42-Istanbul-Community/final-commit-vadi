@@ -8,14 +8,18 @@ import (
 	"flag"
 	"io"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
 )
 
+const redirectURL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
 func main() {
 	addr := flag.String("addr", ":22", "address to listen on")
+	httpAddr := flag.String("http", ":80", "address for the HTTP redirect server")
 	hostKeyPath := flag.String("hostkey", "host_ed25519", "path to the server's host key (created if missing)")
 	flag.Parse()
 
@@ -27,6 +31,11 @@ func main() {
 		log.Printf("connection from %s (user %q)", s.RemoteAddr(), s.User())
 		io.WriteString(s, "Hello, world!\n")
 	})
+
+	go func() {
+		log.Printf("http listening on %s", *httpAddr)
+		log.Fatal(http.ListenAndServe(*httpAddr, http.RedirectHandler(redirectURL, http.StatusFound)))
+	}()
 
 	log.Printf("listening on %s", *addr)
 	// No auth handlers are configured, so any client may connect.
